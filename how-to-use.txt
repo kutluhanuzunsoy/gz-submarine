@@ -2,4 +2,10 @@ cd ~/gz-submarine/ros2_ws
 colcon build --symlink-install
 source ~/gz-submarine/ros2_ws/install/setup.bash
 ros2 launch submarine_bringup bringup.launch.py
-kii -9 ros ros2 gazebo
+kiil -9 ros ros2 gazebo
+
+
+To use teleop, in another terminal:
+cd ~/gz-submarine/ros2_ws
+source ~/gz-submarine/ros2_ws/install/setup.bash
+ros2 run teleop_twist_keyboard teleop_twist_keyboard
