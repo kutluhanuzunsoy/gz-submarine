@@ -6,11 +6,15 @@ from ament_index_python.packages import get_package_share_directory
 import os
 
 def generate_launch_description():
+
+    # Path to custom SDF file (ensure it's placed in the 'models' directory or appropriate location)
+    sdf_file_path = os.path.join(get_package_share_directory('submarine_bringup'), 'resource', 'submarine.sdf')
+
     gazebo_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
             os.path.join(get_package_share_directory('ros_gz_sim'), 'launch', 'gz_sim.launch.py')
         ]),
-        launch_arguments={'gz_args': '-r empty.sdf'}.items()
+        launch_arguments={'gz_args': f'-r {sdf_file_path} --verbose'}.items()
     )
 
     bridges = [
