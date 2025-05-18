@@ -9,7 +9,7 @@ sudo apt update
 sudo apt install -y \
   python3-rosdep python3-colcon-common-extensions python3-vcstool \
   ros-jazzy-ros-gz-bridge ros-jazzy-ros-gz-sim \
-  ros-jazzy-teleop-twist-keyboard
+  ros-jazzy-teleop-twist-keyboard xterm
 ```
 
 ---
