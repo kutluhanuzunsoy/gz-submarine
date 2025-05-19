@@ -44,7 +44,13 @@ def generate_launch_description():
         arguments=['/camera/image_raw@sensor_msgs/msg/Image@gz.msgs.Image'],
         output='screen'
     )
-    
+    imu_bridge = Node(
+    package='ros_gz_bridge',
+    executable='parameter_bridge',
+    name='imu_bridge',
+    arguments=['/imu/data@sensor_msgs/msg/Imu@gz.msgs.IMU'], # Bridge IMU data
+    output='screen'
+    )
     teleop_node = Node(
         package='teleop_twist_keyboard',
         executable='teleop_twist_keyboard',
@@ -60,5 +66,5 @@ def generate_launch_description():
     ld.add_action(cmd_vel_bridge)
     ld.add_action(camera_bridge)
     ld.add_action(teleop_node)
-
+    ld.add_action(imu_bridge)
     return ld
