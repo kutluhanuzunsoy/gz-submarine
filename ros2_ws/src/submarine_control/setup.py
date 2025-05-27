@@ -19,6 +19,7 @@ setup(
     license='TODO: License declaration',
     entry_points={
         'console_scripts': [
+            'submarine_teleop = submarine_control.submarine_teleop:main',
         ],
     },
 )

@@ -17,7 +17,7 @@
             <collision name="main_body_buoyancy">
                 <geometry>
                     <box>
-                        <size>2 0.3 0.246445166667</size>
+                        <size>2 0.3 0.2464451666666667</size>
                     </box>
                 </geometry>
             </collision>
@@ -50,7 +50,7 @@
                 </material>
             </visual>
 
-           <!--CAMERA SENSOR-->
+        <!--CAMERA SENSOR-->
         <sensor name="camera_sensor" type="camera">
         <pose>0.9 0 0.1 0 0 3.14159</pose> 
         <camera name="forward_camera">
@@ -153,6 +153,7 @@
                 </material>
             </visual>
         </link>
+
         <!-- Vertical fins -->
         <link name="vertical_fins">
             <pose>1.05 0 0 0 0 0</pose>
@@ -204,6 +205,7 @@
                 </material>
             </visual>
         </link>
+
         <!-- Propeller -->
         <link name="propeller">
             <pose>1.43162 0 0 0 0 0</pose>
@@ -256,6 +258,7 @@
                 </material>
             </visual>
         </link>
+
         <!-- Joints -->
         <joint name="horizontal_fins_joint" type="revolute">
             <pose>0 0 0 0 0 0</pose>
@@ -299,20 +302,95 @@
                 </limit>
             </axis>
         </joint>
+    
+    <!-- Thruster plugin -->
+    <plugin
+      filename="gz-sim-thruster-system"
+      name="gz::sim::systems::Thruster">
+      <namespace>tethys</namespace>
+      <use_angvel_cmd>0</use_angvel_cmd>
+      <joint_name>propeller_joint</joint_name>
+      <thrust_coefficient>0.004422</thrust_coefficient>
+      <fluid_density>1000</fluid_density>
+      <propeller_diameter>0.2</propeller_diameter>
+    </plugin>
 
-    <plugin filename="gz-sim-velocity-control-system"
-            name="gz::sim::systems::VelocityControl">
-        <link_name>base_link</link_name>
-        <topic>/cmd_vel</topic>
-        <!-- You may need to tune PID gains for smoother control -->
-        <!-- Example PID gains (start with these or tune as needed):
-        <lin_vel_p_gain>10.0</lin_vel_p_gain>
-        <lin_vel_i_gain>0.1</lin_vel_i_gain>
-        <lin_vel_d_gain>1.0</lin_vel_d_gain>
-        <ang_vel_p_gain>10.0</ang_vel_p_gain>
-        <ang_vel_i_gain>0.1</ang_vel_i_gain>
-        <ang_vel_d_gain>1.0</ang_vel_d_gain>
-        -->
+    <!-- Hydrodynamics plugin -->
+    <plugin
+      filename="gz-sim-hydrodynamics-system"
+      name="gz::sim::systems::Hydrodynamics">
+      <link_name>base_link</link_name>
+      <xDotU>-4.876161</xDotU>
+      <yDotV>-126.324739</yDotV>
+      <zDotW>-126.324739</zDotW>
+      <kDotP>0</kDotP>
+      <mDotQ>-33.46</mDotQ>
+      <nDotR>-33.46</nDotR>
+      <xUabsU>-6.2282</xUabsU>
+      <xU>0</xU>
+      <yVabsV>-601.27</yVabsV>
+      <yV>0</yV>
+      <zWabsW>-601.27</zWabsW>
+      <zW>0</zW>
+      <kPabsP>-0.1916</kPabsP>
+      <kP>0</kP>
+      <mQabsQ>-632.698957</mQabsQ>
+      <mQ>0</mQ>
+      <nRabsR>-632.698957</nRabsR>
+      <nR>0</nR>
+    </plugin>
+
+    <!-- Vertical fin lift-drag -->
+    <plugin
+      filename="gz-sim-lift-drag-system"
+      name="gz::sim::systems::LiftDrag">
+      <air_density>1000</air_density>
+      <cla>4.13</cla>
+      <cla_stall>-1.1</cla_stall>
+      <cda>0.2</cda>
+      <cda_stall>0.03</cda_stall>
+      <alpha_stall>0.17</alpha_stall>
+      <a0>0</a0>
+      <area>0.0244</area>
+      <upward>0 1 0</upward>
+      <forward>-1 0 0</forward>
+      <link_name>vertical_fins</link_name>
+      <cp>0 0 0</cp>
+    </plugin>
+
+    <!-- Horizontal fin lift-drag -->
+    <plugin
+      filename="gz-sim-lift-drag-system"
+      name="gz::sim::systems::LiftDrag">
+      <air_density>1000</air_density>
+      <cla>4.13</cla>
+      <cla_stall>-1.1</cla_stall>
+      <cda>0.2</cda>
+      <cda_stall>0.03</cda_stall>
+      <alpha_stall>0.17</alpha_stall>
+      <a0>0</a0>
+      <area>0.0244</area>
+      <upward>0 0 1</upward>
+      <forward>1 0 0</forward>
+      <link_name>horizontal_fins</link_name>
+      <cp>0 0 0</cp>
+    </plugin>
+
+    <!-- Joint position controllers for fins -->
+    <plugin
+      filename="gz-sim-joint-position-controller-system"
+      name="gz::sim::systems::JointPositionController">
+      <joint_name>horizontal_fins_joint</joint_name>
+        <topic>/model/tethys/joint/horizontal_fins_joint/cmd_pos</topic>
+      <p_gain>50.0</p_gain>
+    </plugin>
+
+    <plugin
+      filename="gz-sim-joint-position-controller-system"
+      name="gz::sim::systems::JointPositionController">
+      <joint_name>vertical_fins_joint</joint_name>
+        <topic>/model/tethys/joint/vertical_fins_joint/cmd_pos</topic>
+      <p_gain>50.0</p_gain>
     </plugin>
 
     </model>

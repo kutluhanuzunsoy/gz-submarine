@@ -29,14 +29,6 @@ def generate_launch_description():
         launch_arguments={'gz_args': f'-r {world_path}'}.items()
     )
 
-    cmd_vel_bridge = Node(
-        package='ros_gz_bridge',
-        executable='parameter_bridge',
-        name='cmd_vel_bridge',
-        arguments=['/cmd_vel@geometry_msgs/msg/Twist@gz.msgs.Twist'],
-        output='screen'
-    )
-
     camera_bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
@@ -44,27 +36,55 @@ def generate_launch_description():
         arguments=['/camera/image_raw@sensor_msgs/msg/Image@gz.msgs.Image'],
         output='screen'
     )
+    
     imu_bridge = Node(
-    package='ros_gz_bridge',
-    executable='parameter_bridge',
-    name='imu_bridge',
-    arguments=['/imu/data@sensor_msgs/msg/Imu@gz.msgs.IMU'], # Bridge IMU data
-    output='screen'
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        name='imu_bridge',
+        arguments=['/imu/data@sensor_msgs/msg/Imu@gz.msgs.IMU'],
+        output='screen'
     )
+    
+    thruster_bridge = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        name='thruster_bridge',
+        arguments=['/model/tethys/joint/propeller_joint/cmd_thrust@std_msgs/msg/Float64@gz.msgs.Double'],
+        output='screen'
+    )
+    
+    vertical_fin_bridge = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        name='vertical_fin_bridge',
+        arguments=['/model/tethys/joint/vertical_fins_joint/cmd_pos@std_msgs/msg/Float64@gz.msgs.Double'],
+        output='screen'
+    )
+    
+    horizontal_fin_bridge = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        name='horizontal_fin_bridge',
+        arguments=['/model/tethys/joint/horizontal_fins_joint/cmd_pos@std_msgs/msg/Float64@gz.msgs.Double'],
+        output='screen'
+    )
+        
     teleop_node = Node(
-        package='teleop_twist_keyboard',
-        executable='teleop_twist_keyboard',
-        name='teleop_twist_keyboard',
-        prefix='xterm -e',
+        package='submarine_control',
+        executable='submarine_teleop',
+        name='submarine_teleop',
         output='screen',
-        remappings=[('/cmd_vel', '/cmd_vel')]
+        prefix='xterm -e'
     )
 
     ld = LaunchDescription()
     ld.add_action(set_gazebo_resource_path_action)
     ld.add_action(gazebo_launch)
-    ld.add_action(cmd_vel_bridge)
     ld.add_action(camera_bridge)
-    ld.add_action(teleop_node)
     ld.add_action(imu_bridge)
+    ld.add_action(thruster_bridge)
+    ld.add_action(vertical_fin_bridge)
+    ld.add_action(horizontal_fin_bridge)
+    ld.add_action(teleop_node)
+    
     return ld
