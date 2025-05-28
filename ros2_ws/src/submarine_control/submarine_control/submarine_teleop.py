@@ -1,10 +1,12 @@
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float64
+from sensor_msgs.msg import Imu
 import sys
 import select
 import termios
 import tty
+import math
 import time
 
 msg = """
@@ -23,7 +25,7 @@ Max: Thrust {max_thrust_cmd:.1f}N, Fin {max_fin_angle:.2f}rad
 Inc: Thrust {thrust_increment_step:.1f}N, Fin {fin_increment_step:.3f}rad
 
 Current: Thrust {current_thrust_cmd:.1f}N, Turn {current_turn_fin_angle:.3f}rad, Pitch {current_pitch_fin_angle:.3f}rad
-
+Orientation: Roll {roll:.2f}°, Pitch {pitch:.2f}°, Yaw {heading:.2f}°
 """
 
 moveBindings = {
@@ -42,6 +44,24 @@ speedBindings = {
     'c': (0.9, 0.9),
 }
 
+def quaternion_to_euler(x, y, z, w):
+    """Convert quaternion to Euler angles (roll, pitch, yaw)"""
+    sinr_cosp = 2 * (w * x + y * z)
+    cosr_cosp = 1 - 2 * (x * x + y * y)
+    roll = math.atan2(sinr_cosp, cosr_cosp)
+    
+    sinp = 2 * (w * y - z * x)
+    if abs(sinp) >= 1:
+        pitch = math.copysign(math.pi / 2, sinp)
+    else:
+        pitch = math.asin(sinp)
+    
+    siny_cosp = 2 * (w * z + x * y)
+    cosy_cosp = 1 - 2 * (y * y + z * z)
+    yaw = math.atan2(siny_cosp, cosy_cosp)
+    
+    return roll, pitch, yaw
+
 class SubmarineTeleop(Node):
     def __init__(self):
         super().__init__('submarine_teleop')
@@ -58,8 +78,20 @@ class SubmarineTeleop(Node):
         self.horizontal_fin_pub = self.create_publisher(
             Float64, '/model/tethys/joint/horizontal_fins_joint/cmd_pos', 10)
         
-        self.max_thrust_cmd = 200.0
+        self.imu_subscription = self.create_subscription(
+            Imu,
+            '/imu/data',
+            self.imu_callback,
+            10)
+            
+        self.roll = 0.0
+        self.pitch = 0.0
+        self.heading = 0.0
+        self.angular_velocity_x = 0.0
+        self.angular_velocity_y = 0.0
+        self.angular_velocity_z = 0.0
         
+        self.max_thrust_cmd = 200.0
         self.current_thrust_cmd = 0.0
         self.current_pitch_fin_angle = 0.0
         self.current_turn_fin_angle = 0.0
@@ -71,9 +103,25 @@ class SubmarineTeleop(Node):
         self.fin_decel_factor = 0.90
         self.min_command_threshold = 0.001
         
+        self.display_update_interval = 0.50
+        self.last_display_update = 0.0
+        
         self.settings = termios.tcgetattr(sys.stdin)
         self.get_logger().info('Submarine teleop initialized. Press Ctrl+C to exit.')
+    
+    def imu_callback(self, msg):
+        orientation_q = msg.orientation
+        roll, pitch, yaw = quaternion_to_euler(
+            orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w)
         
+        self.roll = math.degrees(roll)
+        self.pitch = math.degrees(pitch)
+        self.heading = math.degrees(yaw)
+        
+        self.angular_velocity_x = msg.angular_velocity.x
+        self.angular_velocity_y = msg.angular_velocity.y
+        self.angular_velocity_z = msg.angular_velocity.z
+    
     def getKey(self):
         tty.setraw(sys.stdin.fileno())
         rlist, _, _ = select.select([sys.stdin], [], [], 0.1)
@@ -101,8 +149,8 @@ class SubmarineTeleop(Node):
         self.current_thrust_cmd = 0.0
         self.current_pitch_fin_angle = 0.0
         self.current_turn_fin_angle = 0.0
-        
-    def publish_direct_commands(self):
+    
+    def publish_commands(self):
         thrust_msg = Float64()
         thrust_msg.data = self.current_thrust_cmd
         self.thruster_pub.publish(thrust_msg)
@@ -114,15 +162,27 @@ class SubmarineTeleop(Node):
         pitch_fin_msg = Float64()
         pitch_fin_msg.data = self.current_pitch_fin_angle
         self.horizontal_fin_pub.publish(pitch_fin_msg)
-        
+    
+    def update_display_if_needed(self, force=False):
+        current_time = time.time()
+        if force or (current_time - self.last_display_update) >= self.display_update_interval:
+            self.update_status_display()
+            self.last_display_update = current_time
+    
     def run(self):
         try:
             self.update_status_display()
+            self.last_display_update = time.time()
+            
             while rclpy.ok():
+                rclpy.spin_once(self, timeout_sec=0.001)
+                
                 key = self.getKey()
+                display_update_needed = False
                 
                 if key == ' ':
                     self.reset_controls()
+                    display_update_needed = True
                 
                 elif key in moveBindings:
                     thrust_factor, pitch_factor, turn_factor = moveBindings[key]
@@ -134,6 +194,7 @@ class SubmarineTeleop(Node):
                     self.current_thrust_cmd = max(min(self.current_thrust_cmd, self.max_thrust_cmd), -self.max_thrust_cmd)
                     self.current_pitch_fin_angle = max(min(self.current_pitch_fin_angle, self.MAX_FIN_ANGLE), -self.MAX_FIN_ANGLE)
                     self.current_turn_fin_angle = max(min(self.current_turn_fin_angle, self.MAX_FIN_ANGLE), -self.MAX_FIN_ANGLE)
+                    display_update_needed = True
                     
                 elif key in speedBindings:
                     if key in ('w', 'x'):
@@ -147,18 +208,23 @@ class SubmarineTeleop(Node):
                         _, fin_inc_factor = speedBindings[key]
                         new_fin_increment = self.fin_increment_step * fin_inc_factor
                         self.fin_increment_step = min(new_fin_increment, self.MAX_FIN_INCREMENT)
+                    display_update_needed = True
                 
                 elif not key:
                     self.apply_deceleration()
                 
-                self.publish_direct_commands()
-                self.update_status_display()
+                self.publish_commands()
+                
+                if display_update_needed:
+                    self.update_display_if_needed(force=True)
+                else:
+                    self.update_display_if_needed()
                 
         except Exception as e:
             self.get_logger().error(f'Teleop error: {e}')
         finally:
             self.reset_controls()
-            self.publish_direct_commands()
+            self.publish_commands()
             termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.settings)
             
     def update_status_display(self):
@@ -170,7 +236,10 @@ class SubmarineTeleop(Node):
             fin_increment_step=self.fin_increment_step,
             current_thrust_cmd=self.current_thrust_cmd,
             current_turn_fin_angle=self.current_turn_fin_angle,
-            current_pitch_fin_angle=self.current_pitch_fin_angle
+            current_pitch_fin_angle=self.current_pitch_fin_angle,
+            roll=self.roll,
+            pitch=self.pitch,
+            heading=self.heading
         ))
 
 def main(args=None):

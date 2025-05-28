@@ -76,6 +76,14 @@ def generate_launch_description():
         output='screen',
         prefix='xterm -e'
     )
+    
+    camera_viewer = Node(
+        package='rqt_image_view',
+        executable='rqt_image_view',
+        name='camera_viewer',
+        arguments=['/camera/image_raw'],
+        output='screen'
+    )
 
     ld = LaunchDescription()
     ld.add_action(set_gazebo_resource_path_action)
@@ -86,5 +94,6 @@ def generate_launch_description():
     ld.add_action(vertical_fin_bridge)
     ld.add_action(horizontal_fin_bridge)
     ld.add_action(teleop_node)
+    ld.add_action(camera_viewer)
     
     return ld
