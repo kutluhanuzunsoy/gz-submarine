@@ -1,0 +1,34 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <model name="seabed">
+    <static>true</static>
+    <link name="seabed_link">
+      <!-- Seafloor visual -->
+      <visual name="seafloor">
+        <pose>0 0 -10 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <uri>model://seabed/seabed.stl</uri>
+            <scale>1 1 1</scale>
+          </mesh>
+        </geometry>
+        <material>
+          <ambient>0.3 0.2 0.1 1.0</ambient>
+          <diffuse>0.5 0.4 0.3 1.0</diffuse>
+          <specular>0.0 0.0 0.0 1.0</specular>
+        </material>
+      </visual>
+      
+      <!-- Seafloor collision -->
+      <collision name="seafloor">
+        <pose>0 0 -10 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <uri>model://seabed/seabed.stl</uri>
+            <scale>1 1 1</scale>
+          </mesh>
+        </geometry>
+      </collision>
+    </link>
+  </model>
+</sdf>
