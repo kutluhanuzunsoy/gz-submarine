@@ -9,7 +9,7 @@
         <geometry>
           <mesh>
             <uri>model://seabed/seabed.stl</uri>
-            <scale>1 1 1</scale>
+            <scale>10 10 1</scale>
           </mesh>
         </geometry>
         <material>
@@ -25,7 +25,7 @@
         <geometry>
           <mesh>
             <uri>model://seabed/seabed.stl</uri>
-            <scale>1 1 1</scale>
+            <scale>10 10 1</scale>
           </mesh>
         </geometry>
       </collision>

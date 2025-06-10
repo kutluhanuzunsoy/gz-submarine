@@ -26,6 +26,8 @@ Inc: Thrust {thrust_increment_step:.1f}N, Fin {fin_increment_step:.3f}rad
 
 Current: Thrust {current_thrust_cmd:.1f}N, Turn {current_turn_fin_angle:.3f}rad, Pitch {current_pitch_fin_angle:.3f}rad
 Orientation: Roll {roll:.2f}°, Pitch {pitch:.2f}°, Yaw {heading:.2f}°
+
+Last key pressed: {last_key}
 """
 
 moveBindings = {
@@ -105,6 +107,7 @@ class SubmarineTeleop(Node):
         
         self.display_update_interval = 0.50
         self.last_display_update = 0.0
+        self.last_key = "None"
         
         self.settings = termios.tcgetattr(sys.stdin)
         self.get_logger().info('Submarine teleop initialized. Press Ctrl+C to exit.')
@@ -180,6 +183,10 @@ class SubmarineTeleop(Node):
                 key = self.getKey()
                 display_update_needed = False
                 
+                if key:
+                    self.last_key = repr(key)
+                    display_update_needed = True
+                    
                 if key == ' ':
                     self.reset_controls()
                     display_update_needed = True
@@ -239,7 +246,8 @@ class SubmarineTeleop(Node):
             current_pitch_fin_angle=self.current_pitch_fin_angle,
             roll=self.roll,
             pitch=self.pitch,
-            heading=self.heading
+            heading=self.heading,
+            last_key=self.last_key
         ))
 
 def main(args=None):
